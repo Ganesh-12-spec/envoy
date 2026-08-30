@@ -1,28 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
-	"fmt"
-
-	"github.com/spf13/cobra"
+	"github.com/Ganesh-12-spec/envoy/internal/commands"
 )
 
-var rootCmd = cobra.Command{
-	Use:   "envoy",
-	Short: "A secure environment for running applications",
-}
-var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Initialize the environment",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Environment initialized")
-	},
-}
-
 func main() {
-	rootCmd.AddCommand(initCmd)
-	err := rootCmd.Execute()
+	commands.RootCmd.AddCommand(commands.InitCmd)
+
+	err := commands.RootCmd.Execute()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error executing command:", err.Error())
 		os.Exit(1)
