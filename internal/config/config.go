@@ -7,6 +7,8 @@ import (
 
 type Config struct {
 	CurrentEnvironment string `json:"current_environment"`
+	Salt               string `json:"salt"`
+	PasswordHash       string `json:"password_hash"`
 }
 
 func Save(cfg Config, path string) error {
