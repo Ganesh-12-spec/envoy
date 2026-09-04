@@ -11,4 +11,5 @@ var RootCmd = cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(SetCmd)
+	RootCmd.AddCommand(GetCmd)
 }
