@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"crypto/sha256"
+	"crypto/subtle"
+
 	"github.com/Ganesh-12-spec/envoy/internal/config"
 	"github.com/Ganesh-12-spec/envoy/internal/crypto"
 	"github.com/spf13/cobra"
@@ -34,6 +37,16 @@ var GetCmd = &cobra.Command{
 		salt, err := base64.StdEncoding.DecodeString(cfg.Salt)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error decoding salt:", err)
+			return
+		}
+		hash := sha256.Sum256(append(password, salt...))
+		storedHash, err := base64.StdEncoding.DecodeString(cfg.PasswordHash)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error decoding password hash:", err)
+			return
+		}
+		if subtle.ConstantTimeCompare(hash[:], storedHash) != 1 {
+			fmt.Fprintln(os.Stderr, "Error: incorrect master password")
 			return
 		}
 
@@ -71,7 +84,7 @@ var GetCmd = &cobra.Command{
 
 		plaintext, err := crypto.Decrypt(ciphertext, nonce, key)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error decrypting secret:", err)
+			fmt.Fprintln(os.Stderr, "Error: incorrect master password")
 			return
 		}
 
