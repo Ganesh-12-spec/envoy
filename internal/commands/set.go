@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/Ganesh-12-spec/envoy/internal/config"
 	"github.com/Ganesh-12-spec/envoy/internal/crypto"
@@ -16,6 +17,29 @@ var SetCmd = &cobra.Command{
 	Short: "Set a secret",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
+
+		// Validate secret name / namespace
+		secretName := args[0]
+
+		if secretName == "" {
+			fmt.Fprintln(os.Stderr, "Error: secret name cannot be empty")
+			return
+		}
+
+		if strings.Contains(secretName, "/") {
+			if strings.Count(secretName, "/") != 1 {
+				fmt.Fprintln(os.Stderr, "Error: invalid secret name, use namespace/key")
+				return
+			}
+
+			parts := strings.SplitN(secretName, "/", 2)
+
+			if parts[0] == "" || parts[1] == "" {
+				fmt.Fprintln(os.Stderr, "Error: invalid secret name, use namespace/key")
+				return
+			}
+		}
+
 		cfg, err := config.Load(".envoy/config.json")
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error loading configuration:", err)
@@ -66,7 +90,7 @@ var SetCmd = &cobra.Command{
 			vault.Secrets = make(map[string]crypto.Secret)
 		}
 
-		vault.Secrets[args[0]] = crypto.Secret{
+		vault.Secrets[secretName] = crypto.Secret{
 			Ciphertext: base64.StdEncoding.EncodeToString(ciphertext),
 			Nonce:      base64.StdEncoding.EncodeToString(nonce),
 		}
