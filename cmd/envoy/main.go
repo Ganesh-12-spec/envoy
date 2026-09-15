@@ -10,9 +10,8 @@ import (
 func main() {
 	commands.RootCmd.AddCommand(commands.InitCmd)
 
-	err := commands.RootCmd.Execute()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error executing command:", err.Error())
+	if err := commands.RootCmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
 	}
 }

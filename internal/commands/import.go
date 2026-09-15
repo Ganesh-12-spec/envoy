@@ -10,40 +10,40 @@ import (
 
 var ImportCmd = &cobra.Command{
 	Use:   "import BACKUP_FILE",
-	Short: "Import an encrypted vault backup",
-	Args:  cobra.ExactArgs(1),
+	Short: "Import and merge an encrypted vault backup",
+	Long: `Import an encrypted vault backup and merge its secrets
+into the current vault.
+
+If a secret already exists, the imported version replaces it.`,
+	Args: cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		backupPath := args[0]
 		vaultPath := ".envoy/vault.json"
 
-		// Load backup vault
 		backupVault, err := config.LoadVault(backupPath)
 		if err != nil {
-			return err
+			return fmt.Errorf("loading backup: %w", err)
 		}
 
-		// Load current vault
 		currentVault, err := config.LoadVault(vaultPath)
 		if err != nil {
-			return err
+			return fmt.Errorf("loading current vault: %w", err)
 		}
 
 		if currentVault.Secrets == nil {
 			currentVault.Secrets = make(map[string]crypto.Secret)
 		}
 
-		// Merge backup secrets into current vault
 		for key, secret := range backupVault.Secrets {
 			currentVault.Secrets[key] = secret
 		}
 
-		// Save merged vault
 		if err := config.SaveVault(currentVault, vaultPath); err != nil {
-			return err
+			return fmt.Errorf("saving vault: %w", err)
 		}
 
-		fmt.Printf("Vault imported from %s\n", backupPath)
+		fmt.Fprintf(cmd.OutOrStdout(), "Vault imported from %s\n", backupPath)
 
 		return nil
 	},

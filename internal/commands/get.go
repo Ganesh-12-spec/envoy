@@ -1,12 +1,11 @@
 package commands
 
 import (
+	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
 	"os"
-
-	"crypto/sha256"
-	"crypto/subtle"
 
 	"github.com/Ganesh-12-spec/envoy/internal/config"
 	"github.com/Ganesh-12-spec/envoy/internal/crypto"
@@ -16,78 +15,76 @@ import (
 
 var GetCmd = &cobra.Command{
 	Use:   "get KEY",
-	Short: "Get a secret",
-	Args:  cobra.ExactArgs(1),
+	Short: "Retrieve a secret",
+	Long: `Retrieve and decrypt a secret from the Envoy vault.
 
-	Run: func(cmd *cobra.Command, args []string) {
+KEY may be a simple name or a namespaced name such as:
+  envoy get database/password
+  envoy get api/key`,
+	Args: cobra.ExactArgs(1),
+
+	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load(".envoy/config.json")
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error loading configuration:", err)
-			return
+			return fmt.Errorf("loading configuration: %w", err)
 		}
 
-		fmt.Print("Enter master password: ")
+		fmt.Fprint(cmd.OutOrStdout(), "Enter master password: ")
+
 		password, err := term.ReadPassword(int(os.Stdin.Fd()))
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error reading password:", err)
-			return
+			return fmt.Errorf("reading password: %w", err)
 		}
-		fmt.Println()
+		fmt.Fprintln(cmd.OutOrStdout())
 
 		salt, err := base64.StdEncoding.DecodeString(cfg.Salt)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error decoding salt:", err)
-			return
+			return fmt.Errorf("decoding salt: %w", err)
 		}
+
 		hash := sha256.Sum256(append(password, salt...))
+
 		storedHash, err := base64.StdEncoding.DecodeString(cfg.PasswordHash)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error decoding password hash:", err)
-			return
+			return fmt.Errorf("decoding password hash: %w", err)
 		}
+
 		if subtle.ConstantTimeCompare(hash[:], storedHash) != 1 {
-			fmt.Fprintln(os.Stderr, "Error: incorrect master password")
-			return
+			return fmt.Errorf("incorrect master password")
 		}
 
 		key, err := crypto.DeriveKey(password, salt)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error deriving key:", err)
-			return
+			return fmt.Errorf("deriving encryption key: %w", err)
 		}
 
-		vaultPath := ".envoy/vault.json"
-
-		vault, err := config.LoadVault(vaultPath)
+		vault, err := config.LoadVault(".envoy/vault.json")
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error loading vault:", err)
-			return
+			return fmt.Errorf("loading vault: %w", err)
 		}
 
 		secret, ok := vault.Secrets[args[0]]
 		if !ok {
-			fmt.Fprintln(os.Stderr, "Error: secret not found")
-			return
+			return fmt.Errorf("secret %q not found", args[0])
 		}
 
 		ciphertext, err := base64.StdEncoding.DecodeString(secret.Ciphertext)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error decoding ciphertext:", err)
-			return
+			return fmt.Errorf("decoding ciphertext: %w", err)
 		}
 
 		nonce, err := base64.StdEncoding.DecodeString(secret.Nonce)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error decoding nonce:", err)
-			return
+			return fmt.Errorf("decoding nonce: %w", err)
 		}
 
 		plaintext, err := crypto.Decrypt(ciphertext, nonce, key)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error: incorrect master password")
-			return
+			return fmt.Errorf("incorrect master password")
 		}
 
-		fmt.Println(string(plaintext))
+		fmt.Fprintln(cmd.OutOrStdout(), string(plaintext))
+
+		return nil
 	},
 }

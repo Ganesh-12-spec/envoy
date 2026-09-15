@@ -14,34 +14,38 @@ import (
 
 var InitCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Initialize the environment",
-	Run: func(cmd *cobra.Command, args []string) {
+	Short: "Initialize a new Envoy vault",
+	Long: `Initialize Envoy in the current directory.
+
+This creates the .envoy directory and stores the vault configuration,
+including a random salt and password hash.`,
+	Args: cobra.NoArgs,
+
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if _, err := os.Stat(".envoy/config.json"); err == nil {
-			fmt.Fprintln(os.Stderr, "Error: envoy is already initialized")
-			return
+			return fmt.Errorf("envoy is already initialized")
 		}
 
-		fmt.Print("Enter master password: ")
+		fmt.Fprint(cmd.OutOrStdout(), "Enter master password: ")
+
 		password, err := term.ReadPassword(int(os.Stdin.Fd()))
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error reading password:", err)
-			return
+			return fmt.Errorf("reading password: %w", err)
 		}
-		fmt.Println()
+		fmt.Fprintln(cmd.OutOrStdout())
 
 		salt := make([]byte, 16)
+
 		_, err = rand.Read(salt)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error generating salt:", err)
-			return
+			return fmt.Errorf("generating salt: %w", err)
 		}
 
 		hash := sha256.Sum256(append(password, salt...))
 
 		err = os.MkdirAll(".envoy", 0700)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error creating .envoy directory:", err)
-			return
+			return fmt.Errorf("creating .envoy directory: %w", err)
 		}
 
 		cfg := config.Config{
@@ -52,10 +56,11 @@ var InitCmd = &cobra.Command{
 
 		err = config.Save(cfg, ".envoy/config.json")
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error saving configuration:", err)
-			return
+			return fmt.Errorf("saving configuration: %w", err)
 		}
 
-		fmt.Println("Environment initialized")
+		fmt.Fprintln(cmd.OutOrStdout(), "Environment initialized")
+
+		return nil
 	},
 }

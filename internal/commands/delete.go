@@ -18,19 +18,16 @@ var DeleteCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		key := args[0]
 
-		// 1. Load the vault
-		cfg, err := config.Load()
-		if err != nil {
-			return err
-		}
+		vaultPath := ".envoy/vault.json"
 
-		vault, err := loadVault(cfg)
+		// 1. Load the vault
+		vault, err := config.LoadVault(vaultPath)
 		if err != nil {
 			return err
 		}
 
 		// 2. Check whether the secret exists
-		if _, exists := vault[key]; !exists {
+		if _, exists := vault.Secrets[key]; !exists {
 			return fmt.Errorf("secret %q not found", key)
 		}
 
@@ -51,15 +48,15 @@ var DeleteCmd = &cobra.Command{
 			return nil
 		}
 
-		// 4. If yes → delete
-		delete(vault, key)
+		// 5. Delete the secret
+		delete(vault.Secrets, key)
 
-		// 5. Save vault
-		if err := saveVault(cfg, vault); err != nil {
+		// 6. Save the updated vault
+		if err := config.SaveVault(vault, vaultPath); err != nil {
 			return err
 		}
 
-		// 6. Print success
+		// 7. Print success
 		fmt.Printf("Secret %q deleted successfully\n", key)
 
 		return nil
