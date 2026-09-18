@@ -5,6 +5,7 @@ import (
 
 	"github.com/Ganesh-12-spec/envoy/internal/config"
 	"github.com/Ganesh-12-spec/envoy/internal/crypto"
+	"github.com/Ganesh-12-spec/envoy/internal/lock"
 	"github.com/spf13/cobra"
 )
 
@@ -25,6 +26,12 @@ If a secret already exists, the imported version replaces it.`,
 		if err != nil {
 			return fmt.Errorf("loading backup: %w", err)
 		}
+
+		fileLock, err := lock.Acquire(".envoy/vault.lock")
+		if err != nil {
+			return fmt.Errorf("acquiring vault lock: %w", err)
+		}
+		defer fileLock.Release()
 
 		currentVault, err := config.LoadVault(vaultPath)
 		if err != nil {

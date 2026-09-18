@@ -9,6 +9,7 @@ import (
 
 	"github.com/Ganesh-12-spec/envoy/internal/config"
 	"github.com/Ganesh-12-spec/envoy/internal/crypto"
+	"github.com/Ganesh-12-spec/envoy/internal/lock"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -57,6 +58,12 @@ KEY may be a simple name or a namespaced name such as:
 		if err != nil {
 			return fmt.Errorf("deriving encryption key: %w", err)
 		}
+
+		fileLock, err := lock.Acquire(".envoy/vault.lock")
+		if err != nil {
+			return fmt.Errorf("acquiring vault lock: %w", err)
+		}
+		defer fileLock.Release()
 
 		vault, err := config.LoadVault(".envoy/vault.json")
 		if err != nil {

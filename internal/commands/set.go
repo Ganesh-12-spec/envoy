@@ -8,6 +8,7 @@ import (
 
 	"github.com/Ganesh-12-spec/envoy/internal/config"
 	"github.com/Ganesh-12-spec/envoy/internal/crypto"
+	"github.com/Ganesh-12-spec/envoy/internal/lock"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -16,9 +17,9 @@ var SetCmd = &cobra.Command{
 	Use:   "set KEY VALUE",
 	Short: "Set a secret",
 	Args:  cobra.ExactArgs(2),
+
 	Run: func(cmd *cobra.Command, args []string) {
 
-		// Validate secret name / namespace
 		secretName := args[0]
 
 		if secretName == "" {
@@ -74,6 +75,14 @@ var SetCmd = &cobra.Command{
 
 		vaultPath := ".envoy/vault.json"
 
+		// Acquire the lock before the vault read-modify-write operation.
+		fileLock, err := lock.Acquire(".envoy/vault.lock")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error acquiring vault lock:", err)
+			return
+		}
+		defer fileLock.Release()
+
 		vault, err := config.LoadVault(vaultPath)
 		if err != nil {
 			if !os.IsNotExist(err) {
@@ -95,8 +104,7 @@ var SetCmd = &cobra.Command{
 			Nonce:      base64.StdEncoding.EncodeToString(nonce),
 		}
 
-		err = config.SaveVault(vault, vaultPath)
-		if err != nil {
+		if err := config.SaveVault(vault, vaultPath); err != nil {
 			fmt.Fprintln(os.Stderr, "Error saving vault:", err)
 			return
 		}

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Ganesh-12-spec/envoy/internal/config"
+	"github.com/Ganesh-12-spec/envoy/internal/lock"
 	"github.com/spf13/cobra"
 )
 
@@ -20,43 +21,42 @@ var DeleteCmd = &cobra.Command{
 
 		vaultPath := ".envoy/vault.json"
 
-		// 1. Load the vault
+		fileLock, err := lock.Acquire(".envoy/vault.lock")
+		if err != nil {
+			return fmt.Errorf("acquiring vault lock: %w", err)
+		}
+		defer fileLock.Release()
+
 		vault, err := config.LoadVault(vaultPath)
 		if err != nil {
-			return err
+			return fmt.Errorf("loading vault: %w", err)
 		}
 
-		// 2. Check whether the secret exists
 		if _, exists := vault.Secrets[key]; !exists {
 			return fmt.Errorf("secret %q not found", key)
 		}
 
-		// 3. Ask for confirmation
 		fmt.Printf("Are you sure you want to delete %q? (y/n): ", key)
 
 		reader := bufio.NewReader(os.Stdin)
 		input, err := reader.ReadString('\n')
 		if err != nil {
-			return err
+			return fmt.Errorf("reading confirmation: %w", err)
 		}
 
 		input = strings.ToLower(strings.TrimSpace(input))
 
-		// 4. If not yes → do nothing
 		if input != "y" && input != "yes" {
 			fmt.Println("Deletion cancelled.")
 			return nil
 		}
 
-		// 5. Delete the secret
 		delete(vault.Secrets, key)
 
-		// 6. Save the updated vault
 		if err := config.SaveVault(vault, vaultPath); err != nil {
-			return err
+			return fmt.Errorf("saving vault: %w", err)
 		}
 
-		// 7. Print success
 		fmt.Printf("Secret %q deleted successfully\n", key)
 
 		return nil

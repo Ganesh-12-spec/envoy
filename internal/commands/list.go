@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Ganesh-12-spec/envoy/internal/config"
+	"github.com/Ganesh-12-spec/envoy/internal/lock"
 	"github.com/spf13/cobra"
 )
 
@@ -15,6 +16,13 @@ var ListCmd = &cobra.Command{
 	Short: "List secrets",
 
 	Run: func(cmd *cobra.Command, args []string) {
+		fileLock, err := lock.Acquire(".envoy/vault.lock")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error acquiring vault lock:", err)
+			return
+		}
+		defer fileLock.Release()
+
 		vaultPath := ".envoy/vault.json"
 
 		vault, err := config.LoadVault(vaultPath)

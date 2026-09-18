@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Ganesh-12-spec/envoy/internal/lock"
 	"github.com/spf13/cobra"
 )
 
@@ -20,9 +21,19 @@ plaintext secret values.`,
 		backupPath := args[0]
 		vaultPath := ".envoy/vault.json"
 
+		fileLock, err := lock.Acquire(".envoy/vault.lock")
+		if err != nil {
+			return fmt.Errorf("acquiring vault lock: %w", err)
+		}
+
 		data, err := os.ReadFile(vaultPath)
 		if err != nil {
+			fileLock.Release()
 			return fmt.Errorf("reading vault: %w", err)
+		}
+
+		if err := fileLock.Release(); err != nil {
+			return fmt.Errorf("releasing vault lock: %w", err)
 		}
 
 		if err := os.WriteFile(backupPath, data, 0600); err != nil {
