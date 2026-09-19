@@ -3,14 +3,15 @@ package audit
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
+
+	"github.com/Ganesh-12-spec/envoy/internal/paths"
 )
 
-const logPath = ".envoy/audit.log"
-
 func Log(action string, target string) error {
-	if err := os.MkdirAll(".envoy", 0700); err != nil {
+	logPath := paths.Audit()
+
+	if err := os.MkdirAll(paths.EnvoyDir(), 0700); err != nil {
 		return fmt.Errorf("creating Envoy directory: %w", err)
 	}
 
@@ -39,8 +40,4 @@ func Log(action string, target string) error {
 	}
 
 	return nil
-}
-
-func Path() string {
-	return filepath.Clean(logPath)
 }
