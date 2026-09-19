@@ -2,7 +2,9 @@ package commands
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/Ganesh-12-spec/envoy/internal/audit"
 	"github.com/spf13/cobra"
 )
 
@@ -13,8 +15,26 @@ var RootCmd = &cobra.Command{
 
 Store, retrieve, list, delete, export, and import encrypted secrets
 using a master password.`,
+
 	SilenceUsage:  true,
 	SilenceErrors: true,
+
+	PersistentPostRun: func(cmd *cobra.Command, args []string) {
+		action := strings.ToUpper(cmd.Name())
+
+		var target string
+
+		switch cmd.Name() {
+		case "set", "get", "delete":
+			if len(args) > 0 {
+				target = args[0]
+			}
+		}
+
+		if err := audit.Log(action, target); err != nil {
+			fmt.Fprintln(cmd.ErrOrStderr(), "Warning: could not write audit log:", err)
+		}
+	},
 }
 
 func init() {
