@@ -6,6 +6,7 @@ import (
 	"github.com/Ganesh-12-spec/envoy/internal/config"
 	"github.com/Ganesh-12-spec/envoy/internal/crypto"
 	"github.com/Ganesh-12-spec/envoy/internal/lock"
+	"github.com/Ganesh-12-spec/envoy/internal/paths"
 	"github.com/spf13/cobra"
 )
 
@@ -20,14 +21,14 @@ If a secret already exists, the imported version replaces it.`,
 
 	RunE: func(cmd *cobra.Command, args []string) error {
 		backupPath := args[0]
-		vaultPath := ".envoy/vault.json"
+		vaultPath := paths.Vault()
 
 		backupVault, err := config.LoadVault(backupPath)
 		if err != nil {
 			return fmt.Errorf("loading backup: %w", err)
 		}
 
-		fileLock, err := lock.Acquire(".envoy/vault.lock")
+		fileLock, err := lock.Acquire(paths.Lock())
 		if err != nil {
 			return fmt.Errorf("acquiring vault lock: %w", err)
 		}

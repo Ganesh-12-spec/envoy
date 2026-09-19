@@ -8,6 +8,7 @@ import (
 
 	"github.com/Ganesh-12-spec/envoy/internal/config"
 	"github.com/Ganesh-12-spec/envoy/internal/lock"
+	"github.com/Ganesh-12-spec/envoy/internal/paths"
 	"github.com/spf13/cobra"
 )
 
@@ -19,9 +20,9 @@ var DeleteCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		key := args[0]
 
-		vaultPath := ".envoy/vault.json"
+		vaultPath := paths.Vault()
 
-		fileLock, err := lock.Acquire(".envoy/vault.lock")
+		fileLock, err := lock.Acquire(paths.Lock())
 		if err != nil {
 			return fmt.Errorf("acquiring vault lock: %w", err)
 		}

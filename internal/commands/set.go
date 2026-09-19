@@ -9,6 +9,7 @@ import (
 	"github.com/Ganesh-12-spec/envoy/internal/config"
 	"github.com/Ganesh-12-spec/envoy/internal/crypto"
 	"github.com/Ganesh-12-spec/envoy/internal/lock"
+	"github.com/Ganesh-12-spec/envoy/internal/paths"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -41,7 +42,7 @@ var SetCmd = &cobra.Command{
 			}
 		}
 
-		cfg, err := config.Load(".envoy/config.json")
+		cfg, err := config.Load(paths.Config())
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error loading configuration:", err)
 			return
@@ -73,10 +74,10 @@ var SetCmd = &cobra.Command{
 			return
 		}
 
-		vaultPath := ".envoy/vault.json"
+		vaultPath := paths.Vault()
 
 		// Acquire the lock before the vault read-modify-write operation.
-		fileLock, err := lock.Acquire(".envoy/vault.lock")
+		fileLock, err := lock.Acquire(paths.Lock())
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error acquiring vault lock:", err)
 			return

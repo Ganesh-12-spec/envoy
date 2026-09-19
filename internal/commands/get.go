@@ -10,6 +10,7 @@ import (
 	"github.com/Ganesh-12-spec/envoy/internal/config"
 	"github.com/Ganesh-12-spec/envoy/internal/crypto"
 	"github.com/Ganesh-12-spec/envoy/internal/lock"
+	"github.com/Ganesh-12-spec/envoy/internal/paths"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -25,7 +26,7 @@ KEY may be a simple name or a namespaced name such as:
 	Args: cobra.ExactArgs(1),
 
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load(".envoy/config.json")
+		cfg, err := config.Load(paths.Config())
 		if err != nil {
 			return fmt.Errorf("loading configuration: %w", err)
 		}
@@ -59,13 +60,13 @@ KEY may be a simple name or a namespaced name such as:
 			return fmt.Errorf("deriving encryption key: %w", err)
 		}
 
-		fileLock, err := lock.Acquire(".envoy/vault.lock")
+		fileLock, err := lock.Acquire(paths.Lock())
 		if err != nil {
 			return fmt.Errorf("acquiring vault lock: %w", err)
 		}
 		defer fileLock.Release()
 
-		vault, err := config.LoadVault(".envoy/vault.json")
+		vault, err := config.LoadVault(paths.Vault())
 		if err != nil {
 			return fmt.Errorf("loading vault: %w", err)
 		}
